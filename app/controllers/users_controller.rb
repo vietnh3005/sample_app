@@ -1,15 +1,22 @@
 class UsersController < ApplicationController
-  before_action :find_user, only: [:show, :edit, :update]
-  before_action :logged_in_user, only: [:index, :edit, :update]
-  before_action :correct_user, only: [:edit, :update]
+  before_action :logged_in_user, except: [:create, :new]
   before_action :admin_user, only: :destroy
+  before_action :find_user, except: [:new, :index, :create]
+  before_action :correct_user, only: [:edit, :update]
 
   def index
     @users = User.where(activated: true).paginate page: params[:page]
   end
 
   def show
-    @microposts = @user.microposts.paginate page: params[:page]
+    @microposts = @user.microposts.order_by_time.paginate page: params[:page]
+    unless @user.current_user? current_user
+      @relation = if current_user.following? @user
+        current_user.active_relationships.find_by followed_id: @user.id
+      else
+        current_user.active_relationships.build
+      end
+    end
   end
 
   def new
